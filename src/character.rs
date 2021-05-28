@@ -83,7 +83,17 @@ fn read_character<R: Read>(bread: &mut BufReader<R>, header: &Header) -> Result<
 
     let delimiter = *first.last().unwrap();
 
-    for i in 0..(lines.len() - 1) {
+    if header.height() > 1 {
+        let last_i = lines.len() - 1;
+        if !lines[last_i].ends_with(&[delimiter][..]) {
+            return Err(ParseError::InvalidCharacter.into());
+        }
+
+        let new_len = lines[last_i].len() - 1;
+        unsafe { lines[last_i].set_len(new_len) };
+    }
+
+    for i in 0..lines.len() {
         if lines[i].len() == 0 {
             return Err(ParseError::InvalidCharacter.into());
         }
@@ -109,44 +119,6 @@ fn read_character<R: Read>(bread: &mut BufReader<R>, header: &Header) -> Result<
             })
             .collect();
     }
-
-    let i = lines.len() - 1;
-    if header.height() == 1 {
-        if lines[i].len() == 0 {
-            return Err(ParseError::InvalidCharacter.into());
-        }
-
-        if *lines[i].last().unwrap() != delimiter {
-            return Err(ParseError::InvalidCharacter.into());
-        }
-    } else {
-        if lines[i].len() < 2 {
-            return Err(ParseError::InvalidCharacter.into());
-        }
-
-        let last_del = [delimiter, delimiter];
-
-        if !lines[i].ends_with(&last_del[..]) {
-            return Err(ParseError::InvalidCharacter.into());
-        }
-    }
-
-    let len = lines[i].len();
-    lines[i].truncate(len - 2);
-    while lines[i].ends_with(b" ") {
-        let len = lines[i].len();
-        lines[i].truncate(len - 1);
-    }
-    lines[i] = lines[i]
-        .iter()
-        .map(|c| {
-            if *c == header.hard_blank_char() {
-                b' '
-            } else {
-                *c
-            }
-        })
-        .collect();
 
     Ok(Character { lines })
 }
