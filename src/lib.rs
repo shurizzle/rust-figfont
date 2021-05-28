@@ -4,8 +4,6 @@ use std::io::{BufReader, Read};
 use character::Character;
 use header::Header;
 
-use crate::utils::read_line;
-
 pub mod character;
 pub mod error;
 pub mod header;
@@ -42,10 +40,6 @@ fn parse<R: Read>(reader: R) -> Result<FIGfont> {
     let mut bread /* mlmlmlml */ = BufReader::new(reader);
 
     let header = Header::parse(&mut bread)?;
-
-    for _ in 0..header.comment_lines() {
-        read_line(&mut bread)?; // TODO: save comments in the header
-    }
 
     let mut characters = HashMap::new();
 

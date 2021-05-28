@@ -1,5 +1,6 @@
 use std::{
-    io::{BufReader, Read},
+    borrow::Cow,
+    io::{BufRead, BufReader, Read},
     str::{from_utf8, FromStr},
 };
 
@@ -15,7 +16,7 @@ pub struct Header {
     max_length: u64,
     old_layout: i64,
     full_layout: u64,
-    comment_lines: Option<u64>,
+    comment: String,
     print_direction: Option<PrintDirection>,
     codetag_count: Option<u64>,
 }
@@ -49,8 +50,8 @@ impl Header {
         self.full_layout
     }
 
-    pub fn comment_lines(&self) -> u64 {
-        self.comment_lines.unwrap_or(0)
+    pub fn comment<'a>(&'a self) -> Cow<'a, str> {
+        Cow::Borrowed(&self.comment)
     }
 
     pub fn print_direction(&self) -> Option<PrintDirection> {
@@ -91,7 +92,7 @@ pub(crate) struct HeaderBuilder {
     max_length: Option<u64>,
     old_layout: Option<i64>,
     full_layout: Option<u64>,
-    comment_lines: Option<u64>,
+    comment_lines: Option<usize>,
     print_direction: Option<PrintDirection>,
     codetag_count: Option<u64>,
 }
@@ -102,8 +103,29 @@ macro_rules! u {
     };
 }
 
+fn read_string_lines<R: Read>(bread: &mut BufReader<R>, num: usize) -> Result<String> {
+    let mut lines = String::new();
+
+    for _ in 0..num {
+        bread.read_line(&mut lines)?;
+    }
+
+    if lines.ends_with("\r\n") {
+        lines.truncate(lines.len() - 2);
+    } else if lines.ends_with("\n") {
+        lines.truncate(lines.len() - 1);
+    } else {
+        return Err(ParseError::NotEnoughData.into());
+    }
+
+    Ok(lines)
+}
+
 impl HeaderBuilder {
-    pub fn build(self) -> Result<Header> {
+    pub fn build<R: Read>(self, bread: &mut BufReader<R>) -> Result<Header> {
+        let comment_lines = self.comment_lines.unwrap_or(0);
+        let comment = read_string_lines(bread, comment_lines)?;
+
         Ok(Header {
             hard_blank_char: u!(self.hard_blank_char),
             height: u!(self.height),
@@ -111,7 +133,7 @@ impl HeaderBuilder {
             max_length: u!(self.max_length),
             old_layout: u!(self.old_layout),
             full_layout: u!(self.full_layout),
-            comment_lines: self.comment_lines,
+            comment,
             print_direction: self.print_direction,
             codetag_count: self.codetag_count,
         })
@@ -184,7 +206,7 @@ fn parse_header<R: Read>(bread: &mut BufReader<R>) -> Result<Header> {
         }
     }
 
-    builder.build()
+    builder.build(bread)
 }
 
 fn full_layout_from_old_layout(old_layout: i64) -> u64 {
