@@ -75,22 +75,4 @@ mod tests {
     fn default() {
         FIGfont::standard().unwrap();
     }
-
-    //#[test]
-    //fn bubble() {
-    //let font = include_bytes!("../fonts/bubble.flf");
-    //FIGfont::read_from(&font[..]).unwrap();
-    //}
-
-    //#[test]
-    //fn digital() {
-    //let font = include_bytes!("../fonts/digital.flf");
-    //FIGfont::read_from(&font[..]).unwrap();
-    //}
-
-    //#[test]
-    //fn term() {
-    //let font = include_bytes!("../fonts/term.flf");
-    //FIGfont::read_from(&font[..]).unwrap();
-    //}
 }

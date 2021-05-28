@@ -101,7 +101,7 @@ fn read_character<R: Read>(bread: &mut BufReader<R>, header: &Header) -> Result<
         lines[i] = lines[i]
             .iter()
             .map(|c| {
-                if *c == (header.hard_blank_char() as u8) {
+                if *c == header.hard_blank_char() {
                     b' '
                 } else {
                     *c
@@ -111,14 +111,24 @@ fn read_character<R: Read>(bread: &mut BufReader<R>, header: &Header) -> Result<
     }
 
     let i = lines.len() - 1;
-    if lines[i].len() < 2 {
-        return Err(ParseError::InvalidCharacter.into());
-    }
+    if header.height() == 1 {
+        if lines[i].len() == 0 {
+            return Err(ParseError::InvalidCharacter.into());
+        }
 
-    let last_del = [delimiter, delimiter];
+        if *lines[i].last().unwrap() != delimiter {
+            return Err(ParseError::InvalidCharacter.into());
+        }
+    } else {
+        if lines[i].len() < 2 {
+            return Err(ParseError::InvalidCharacter.into());
+        }
 
-    if !lines[i].ends_with(&last_del[..]) {
-        return Err(ParseError::InvalidCharacter.into());
+        let last_del = [delimiter, delimiter];
+
+        if !lines[i].ends_with(&last_del[..]) {
+            return Err(ParseError::InvalidCharacter.into());
+        }
     }
 
     let len = lines[i].len();
@@ -130,7 +140,7 @@ fn read_character<R: Read>(bread: &mut BufReader<R>, header: &Header) -> Result<
     lines[i] = lines[i]
         .iter()
         .map(|c| {
-            if *c == (header.hard_blank_char() as u8) {
+            if *c == header.hard_blank_char() {
                 b' '
             } else {
                 *c

@@ -9,7 +9,7 @@ const MAGIC_NUMBER: &'static [u8] = b"flf2";
 
 #[derive(Debug)]
 pub struct Header {
-    hard_blank_char: char,
+    hard_blank_char: u8,
     height: usize,
     baseline: u64,
     max_length: u64,
@@ -25,7 +25,7 @@ impl Header {
         parse_header(bread)
     }
 
-    pub fn hard_blank_char(&self) -> char {
+    pub fn hard_blank_char(&self) -> u8 {
         self.hard_blank_char
     }
 
@@ -85,7 +85,7 @@ impl FromStr for PrintDirection {
 
 #[derive(Debug, Default)]
 pub(crate) struct HeaderBuilder {
-    hard_blank_char: Option<char>,
+    hard_blank_char: Option<u8>,
     height: Option<usize>,
     baseline: Option<u64>,
     max_length: Option<u64>,
@@ -146,7 +146,7 @@ fn parse_header<R: Read>(bread: &mut BufReader<R>) -> Result<Header> {
             0 => {
                 if arg.starts_with(MAGIC_NUMBER) {
                     builder.hard_blank_char =
-                        Some(*arg.last().ok_or_else(|| ParseError::InvalidHeader)? as char);
+                        Some(*arg.last().ok_or_else(|| ParseError::InvalidHeader)?);
                 } else {
                     return Err(ParseError::InvalidHeader.into());
                 }
