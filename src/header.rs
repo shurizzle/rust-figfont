@@ -1,11 +1,11 @@
 use std::{
     io::{BufReader, Read},
-    str::FromStr,
+    str::{from_utf8, FromStr},
 };
 
 use crate::{error::ParseError, result::Result, utils::read_line};
 
-const MAGIC_NUMBER: &'static str = "flf2";
+const MAGIC_NUMBER: &'static [u8] = b"flf2";
 
 #[derive(Debug)]
 pub struct Header {
@@ -120,16 +120,14 @@ impl HeaderBuilder {
 
 macro_rules! parse {
     ($arg:ident) => {
-        match $arg.parse() {
-            Ok(res) => Some(res),
-            Err(_) => {
-                return Err(ParseError::InvalidHeader.into());
-            }
-        }
+        parse!($arg, _)
     };
 
     ($arg:ident, $t:ty) => {
-        match $arg.parse::<$t>() {
+        match from_utf8($arg)
+            .map_err(|_| ParseError::InvalidHeader)?
+            .parse::<$t>()
+        {
             Ok(res) => Some(res),
             Err(_) => {
                 return Err(ParseError::InvalidHeader.into());
@@ -140,18 +138,15 @@ macro_rules! parse {
 
 fn parse_header<R: Read>(bread: &mut BufReader<R>) -> Result<Header> {
     let header = read_line(bread)?;
-    let arguments = header.split_whitespace();
+    let arguments = header.split(|c| c == &b' ').filter(|x| !x.is_empty());
     let mut builder = HeaderBuilder::default();
 
     for (i, arg) in arguments.enumerate() {
         match i {
             0 => {
                 if arg.starts_with(MAGIC_NUMBER) {
-                    builder.hard_blank_char = Some(
-                        arg.chars()
-                            .last()
-                            .ok_or_else(|| ParseError::InvalidHeader)?,
-                    );
+                    builder.hard_blank_char =
+                        Some(*arg.last().ok_or_else(|| ParseError::InvalidHeader)? as char);
                 } else {
                     return Err(ParseError::InvalidHeader.into());
                 }

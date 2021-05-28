@@ -1,6 +1,7 @@
 use std::{
     borrow::Cow,
     io::{BufReader, Read},
+    str::from_utf8,
 };
 
 use crate::{
@@ -12,7 +13,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Character {
-    lines: Vec<String>,
+    lines: Vec<Vec<u8>>,
 }
 
 impl Character {
@@ -27,7 +28,7 @@ impl Character {
         read_character_with_codetag(bread, header)
     }
 
-    pub fn lines<'a>(&'a self) -> Cow<'a, Vec<String>> {
+    pub fn lines<'a>(&'a self) -> Cow<'a, Vec<Vec<u8>>> {
         Cow::Borrowed(&self.lines)
     }
 }
@@ -45,23 +46,27 @@ fn read_character_with_codetag<R: Read>(
 fn read_codetag<R: Read>(bread: &mut BufReader<R>) -> Result<i32> {
     let line = read_line(bread)?;
     let mut code = line
-        .splitn(2, ' ')
+        .splitn(2, |c| c == &b' ')
         .next()
         .ok_or(ParseError::InvalidCharacter)?;
 
-    let sign: i32 = if code.starts_with('-') {
+    let sign: i32 = if code.starts_with(b"-") {
         code = &code[1..];
         -1
     } else {
         1
     };
 
-    let code = if code.starts_with("0x") || code.starts_with("0X") {
-        i32::from_str_radix(&code[2..], 16)
-    } else if code.starts_with('0') {
-        i32::from_str_radix(&code[1..], 8)
+    let code = if code.starts_with(b"0x") || code.starts_with(b"0X") {
+        let code = from_utf8(&code[2..]).map_err(|_| ParseError::InvalidCharacter)?;
+        i32::from_str_radix(code, 16)
+    } else if code.starts_with(b"0") {
+        let code = from_utf8(&code[1..]).map_err(|_| ParseError::InvalidCharacter)?;
+        i32::from_str_radix(code, 8)
     } else {
-        code.parse()
+        from_utf8(code)
+            .map_err(|_| ParseError::InvalidCharacter)?
+            .parse()
     };
 
     Ok(code.map_err(|_| ParseError::InvalidCharacter)? * sign)
@@ -76,24 +81,33 @@ fn read_character<R: Read>(bread: &mut BufReader<R>, header: &Header) -> Result<
         return Err(ParseError::InvalidCharacter.into());
     }
 
-    let delimiter = first.chars().last().unwrap();
+    let delimiter = *first.last().unwrap();
 
     for i in 0..(lines.len() - 1) {
         if lines[i].len() == 0 {
             return Err(ParseError::InvalidCharacter.into());
         }
 
-        if lines[i].chars().last().unwrap() != delimiter {
+        if *lines[i].last().unwrap() != delimiter {
             return Err(ParseError::InvalidCharacter.into());
         }
 
         let len = lines[i].len();
         lines[i].truncate(len - 1);
-        while lines[i].ends_with(' ') {
+        while lines[i].ends_with(b" ") {
             let len = lines[i].len();
             lines[i].truncate(len - 1);
         }
-        lines[i] = lines[i].replace(header.hard_blank_char(), " ");
+        lines[i] = lines[i]
+            .iter()
+            .map(|c| {
+                if *c == (header.hard_blank_char() as u8) {
+                    b' '
+                } else {
+                    *c
+                }
+            })
+            .collect();
     }
 
     let i = lines.len() - 1;
@@ -109,19 +123,28 @@ fn read_character<R: Read>(bread: &mut BufReader<R>, header: &Header) -> Result<
 
     let len = lines[i].len();
     lines[i].truncate(len - 2);
-    while lines[i].ends_with(' ') {
+    while lines[i].ends_with(b" ") {
         let len = lines[i].len();
         lines[i].truncate(len - 1);
     }
-    lines[i] = lines[i].replace(header.hard_blank_char(), " ");
+    lines[i] = lines[i]
+        .iter()
+        .map(|c| {
+            if *c == (header.hard_blank_char() as u8) {
+                b' '
+            } else {
+                *c
+            }
+        })
+        .collect();
 
     Ok(Character { lines })
 }
 
-fn read_lines<R: Read>(bread: &mut BufReader<R>, num: usize) -> Result<Vec<String>> {
+fn read_lines<R: Read>(bread: &mut BufReader<R>, num: usize) -> Result<Vec<Vec<u8>>> {
     let mut lines = Vec::with_capacity(num);
 
-    for i in 0..(num - 1) {
+    for _ in 0..(num - 1) {
         lines.push(read_line(bread)?);
     }
 

@@ -14,7 +14,9 @@ mod utils;
 
 use crate::result::Result;
 
-const DEUTSCH_CODE_POINTS: [i32; 6] = [196, 214, 220, 228, 252, 223];
+const DEUTSCH_CODE_POINTS: [i32; 7] = [196, 214, 220, 228, 246, 252, 223];
+
+const STANDARD_FONT: &'static [u8] = include_bytes!("../fonts/standard.flf");
 
 #[derive(Debug)]
 pub struct FIGfont {
@@ -29,6 +31,10 @@ impl FIGfont {
 
     pub fn parse<S: AsRef<str>>(text: S) -> Result<FIGfont> {
         Self::read_from(text.as_ref().as_bytes())
+    }
+
+    pub fn standard() -> Result<FIGfont> {
+        Self::read_from(STANDARD_FONT)
     }
 }
 
@@ -47,7 +53,7 @@ fn parse<R: Read>(reader: R) -> Result<FIGfont> {
         characters.insert(codepoint, Character::parse(&mut bread, &header)?);
     }
 
-    for codepoint in DEUTSCH_CODE_POINTS.into_iter() {
+    for codepoint in DEUTSCH_CODE_POINTS.iter() {
         let codepoint = *codepoint;
 
         characters.insert(codepoint, Character::parse(&mut bread, &header)?);
@@ -59,4 +65,32 @@ fn parse<R: Read>(reader: R) -> Result<FIGfont> {
     }
 
     Ok(FIGfont { header, characters })
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::FIGfont;
+
+    #[test]
+    fn default() {
+        FIGfont::standard().unwrap();
+    }
+
+    //#[test]
+    //fn bubble() {
+    //let font = include_bytes!("../fonts/bubble.flf");
+    //FIGfont::read_from(&font[..]).unwrap();
+    //}
+
+    //#[test]
+    //fn digital() {
+    //let font = include_bytes!("../fonts/digital.flf");
+    //FIGfont::read_from(&font[..]).unwrap();
+    //}
+
+    //#[test]
+    //fn term() {
+    //let font = include_bytes!("../fonts/term.flf");
+    //FIGfont::read_from(&font[..]).unwrap();
+    //}
 }
