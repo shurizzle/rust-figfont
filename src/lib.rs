@@ -1,7 +1,8 @@
 use std::collections::HashMap;
-use std::io::{BufReader, Read};
+use std::io::{BufRead, BufReader, Read};
 
 use character::FIGcharacter;
+use error::ParseError;
 use header::Header;
 
 pub mod character;
@@ -54,9 +55,20 @@ fn parse<R: Read>(reader: R) -> Result<FIGfont> {
         characters.insert(codepoint, FIGcharacter::parse(&mut bread, &header)?);
     }
 
-    for _ in 0..header.codetag_count() {
+    let mut cnt = 0;
+    while bread.fill_buf()?.len() > 0 {
         let (codepoint, character) = FIGcharacter::parse_with_codetag(&mut bread, &header)?;
         characters.insert(codepoint, character);
+        cnt += 1;
+    }
+
+    match header.codetag_count() {
+        Some(expected_cnt) => {
+            if expected_cnt != cnt {
+                return Err(ParseError::InvalidFont.into());
+            }
+        }
+        None => (),
     }
 
     Ok(FIGfont { header, characters })

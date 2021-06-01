@@ -92,8 +92,8 @@ impl Header {
         self.print_direction
     }
 
-    pub fn codetag_count(&self) -> u32 {
-        self.codetag_count.unwrap_or(0)
+    pub fn codetag_count(&self) -> Option<u32> {
+        self.codetag_count
     }
 }
 

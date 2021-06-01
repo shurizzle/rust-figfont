@@ -14,4 +14,6 @@ pub enum ParseError {
     InvalidHeader,
     #[error("invalid character")]
     InvalidCharacter,
+    #[error("invalid font")]
+    InvalidFont,
 }
