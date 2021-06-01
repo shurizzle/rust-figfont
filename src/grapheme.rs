@@ -1,8 +1,6 @@
-use std::{
-    borrow::Borrow,
-    str::{self, Utf8Error},
-};
+use std::{borrow::Borrow, str};
 
+use encoding::{all::ISO_8859_1, Encoding};
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
@@ -48,7 +46,7 @@ fn split<'a, 'b>(haystack: &'a [u8], when: &'b [u8]) -> SplitWith<'a, 'b> {
 }
 
 impl Grapheme {
-    pub fn split(raw: &[u8], blank_character: &[u8]) -> Result<Vec<Grapheme>, Utf8Error> {
+    pub fn split(raw: &[u8], blank_character: &[u8]) -> Result<Vec<Grapheme>, String> {
         let mut res = Vec::new();
         for (i, string) in split(raw, blank_character).enumerate() {
             if i != 0 {
@@ -56,7 +54,10 @@ impl Grapheme {
             }
 
             if !string.is_empty() {
-                let string = str::from_utf8(string)?;
+                let string = ISO_8859_1
+                    .decode(string, encoding::DecoderTrap::Strict)
+                    .map_err(|e| e.to_string())?
+                    .to_string();
                 for g in string.graphemes(false) {
                     res.push(Grapheme::Symbol(g.to_string()));
                 }
@@ -89,5 +90,19 @@ impl ToString for Grapheme {
             Grapheme::Symbol(ref res) => res.to_string(),
             Grapheme::Blank => " ".to_string(),
         }
+    }
+}
+
+impl From<&char> for Grapheme {
+    #[inline]
+    fn from(c: &char) -> Self {
+        Grapheme::Symbol(c.to_string())
+    }
+}
+
+impl From<char> for Grapheme {
+    #[inline]
+    fn from(c: char) -> Self {
+        From::from(&c)
     }
 }

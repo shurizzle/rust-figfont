@@ -124,7 +124,7 @@ fn read_character<R: Read>(bread: &mut BufReader<R>, header: &Header) -> Result<
         res.push(
             Grapheme::split(&line[..], header.hard_blank_char())
                 .ok()
-                .ok_or::<Error>(ParseError::InvalidHeader.into())?,
+                .ok_or::<Error>(ParseError::InvalidCharacter.into())?,
         );
     }
 

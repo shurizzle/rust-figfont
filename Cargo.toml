@@ -7,6 +7,7 @@ edition = "2018"
 
 [dependencies]
 bitflags = "1.2.1"
+encoding = "0.2.33"
 thiserror = "1.0.25"
 unicode-segmentation = "1.7.1"
 unicode-width = "0.1.8"
