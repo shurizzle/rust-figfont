@@ -36,6 +36,16 @@ impl FIGfont {
     pub fn standard() -> Result<FIGfont> {
         Self::read_from(STANDARD_FONT)
     }
+
+    pub fn header(&self) -> &Header {
+        &self.header
+    }
+
+    pub fn get(&self, code: i32) -> &FIGcharacter {
+        self.characters
+            .get(&code)
+            .unwrap_or_else(|| self.characters.get(&126i32).unwrap())
+    }
 }
 
 fn parse<R: Read>(reader: R) -> Result<FIGfont> {
