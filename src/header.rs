@@ -55,7 +55,7 @@ pub struct Header {
     max_length: usize,
     layout: Layout,
     comment: String,
-    print_direction: Option<PrintDirection>,
+    print_direction: PrintDirection,
     codetag_count: Option<u32>,
 }
 
@@ -88,7 +88,7 @@ impl Header {
         Cow::Borrowed(&self.comment)
     }
 
-    pub fn print_direction(&self) -> Option<PrintDirection> {
+    pub fn print_direction(&self) -> PrintDirection {
         self.print_direction
     }
 
@@ -184,10 +184,10 @@ fn parse_header<R: Read>(bread: &mut BufReader<R>) -> Result<Header> {
     let max_length: usize = parse!(arguments[3]).ok_or(ParseError::InvalidHeader)?;
     let old_layout: i32 = parse!(arguments[4]).ok_or(ParseError::InvalidHeader)?;
 
-    let print_direction: Option<PrintDirection> = if arguments.len() > 6 {
-        Some(parse!(arguments[6]).ok_or(ParseError::InvalidHeader)?)
+    let print_direction: PrintDirection = if arguments.len() > 6 {
+        parse!(arguments[6]).ok_or(ParseError::InvalidHeader)?
     } else {
-        None
+        PrintDirection::LeftToRight
     };
 
     let layout: Layout = if arguments.len() > 7 {
