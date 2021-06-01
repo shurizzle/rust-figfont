@@ -5,7 +5,7 @@ use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Grapheme {
+pub enum SubCharacter {
     Symbol(String),
     Blank,
 }
@@ -45,12 +45,12 @@ fn split<'a, 'b>(haystack: &'a [u8], when: &'b [u8]) -> SplitWith<'a, 'b> {
     }
 }
 
-impl Grapheme {
-    pub fn split(raw: &[u8], blank_character: &[u8]) -> Result<Vec<Grapheme>, String> {
+impl SubCharacter {
+    pub fn split(raw: &[u8], blank_character: &[u8]) -> Result<Vec<SubCharacter>, String> {
         let mut res = Vec::new();
         for (i, string) in split(raw, blank_character).enumerate() {
             if i != 0 {
-                res.push(Grapheme::Blank);
+                res.push(SubCharacter::Blank);
             }
 
             if !string.is_empty() {
@@ -59,7 +59,7 @@ impl Grapheme {
                     .map_err(|e| e.to_string())?
                     .to_string();
                 for g in string.graphemes(false) {
-                    res.push(Grapheme::Symbol(g.to_string()));
+                    res.push(SubCharacter::Symbol(g.to_string()));
                 }
             }
         }
@@ -69,38 +69,38 @@ impl Grapheme {
 
     pub fn width(&self) -> usize {
         match self {
-            Grapheme::Blank => 1,
-            Grapheme::Symbol(ref sym) => UnicodeWidthStr::width(sym.as_str()),
+            SubCharacter::Blank => 1,
+            SubCharacter::Symbol(ref sym) => UnicodeWidthStr::width(sym.as_str()),
         }
     }
 }
 
-impl Borrow<str> for Grapheme {
+impl Borrow<str> for SubCharacter {
     fn borrow<'a>(&'a self) -> &'a str {
         match self {
-            Grapheme::Symbol(ref res) => res,
-            Grapheme::Blank => " ",
+            SubCharacter::Symbol(ref res) => res,
+            SubCharacter::Blank => " ",
         }
     }
 }
 
-impl ToString for Grapheme {
+impl ToString for SubCharacter {
     fn to_string(&self) -> String {
         match self {
-            Grapheme::Symbol(ref res) => res.to_string(),
-            Grapheme::Blank => " ".to_string(),
+            SubCharacter::Symbol(ref res) => res.to_string(),
+            SubCharacter::Blank => " ".to_string(),
         }
     }
 }
 
-impl From<&char> for Grapheme {
+impl From<&char> for SubCharacter {
     #[inline]
     fn from(c: &char) -> Self {
-        Grapheme::Symbol(c.to_string())
+        SubCharacter::Symbol(c.to_string())
     }
 }
 
-impl From<char> for Grapheme {
+impl From<char> for SubCharacter {
     #[inline]
     fn from(c: char) -> Self {
         From::from(&c)

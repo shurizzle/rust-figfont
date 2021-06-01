@@ -6,9 +6,9 @@ use header::Header;
 
 pub mod character;
 pub mod error;
-pub mod grapheme;
 pub mod header;
 pub mod result;
+pub mod subcharacter;
 mod utils;
 
 use crate::result::Result;

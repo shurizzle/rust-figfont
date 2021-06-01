@@ -16,14 +16,22 @@ const MAGIC_NUMBER: &'static [u8] = b"flf2a";
 
 bitflags! {
     pub struct Layout: u32 {
-        const EQUAL = 1;
-        const LOWLINE = 2;
-        const HIERARCHY = 4;
-        const PAIR = 8;
-        const BIGX = 16;
-        const HARDBLANK = 32;
-        const KERN = 64;
-        const SMUSH = 128;
+        const HORIZONTAL_EQUAL = 1;
+        const HORIZONTAL_LOWLINE = 2;
+        const HORIZONTAL_HIERARCHY = 4;
+        const HORIZONTAL_PAIR = 8;
+        const HORIZONTAL_BIGX = 16;
+        const HORIZONTAL_HARDBLANK = 32;
+        const HORIZONTAL_KERNING = 64;
+        const HORIZONTAL_SMUSH = 128;
+
+        const VERTICAL_EQUAL = 256;
+        const VERTICAL_LOWLINE = 512;
+        const VERTICAL_HIERARCHY = 1024;
+        const VERTICAL_PAIR = 2048;
+        const VERTICAL_BIGX = 4096;
+        const VERTICAL_KERNING = 8192;
+        const VERTICAL_SMUSH = 16392;
     }
 }
 
@@ -35,7 +43,7 @@ impl FromStr for Layout {
             .parse()
             .ok()
             .ok_or::<Error>(ParseError::InvalidHeader.into())?;
-        Ok(Layout::from_bits_truncate(raw))
+        Layout::from_bits(raw).ok_or(ParseError::InvalidHeader.into())
     }
 }
 

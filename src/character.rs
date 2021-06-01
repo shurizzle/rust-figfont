@@ -6,15 +6,15 @@ use std::{
 
 use crate::{
     error::{Error, ParseError},
-    grapheme::Grapheme,
     header::Header,
     result::Result,
+    subcharacter::SubCharacter,
     utils::{read_last_line, read_line},
 };
 
 #[derive(Debug)]
 pub struct FIGcharacter {
-    lines: Vec<Vec<Grapheme>>,
+    lines: Vec<Vec<SubCharacter>>,
 }
 
 impl FIGcharacter {
@@ -32,7 +32,7 @@ impl FIGcharacter {
         read_character_with_codetag(bread, header)
     }
 
-    pub fn lines<'a>(&'a self) -> Cow<'a, Vec<Vec<Grapheme>>> {
+    pub fn lines<'a>(&'a self) -> Cow<'a, Vec<Vec<SubCharacter>>> {
         Cow::Borrowed(&self.lines)
     }
 
@@ -118,11 +118,11 @@ fn read_character<R: Read>(bread: &mut BufReader<R>, header: &Header) -> Result<
         lines[i].truncate(len - 1);
     }
 
-    let mut res: Vec<Vec<Grapheme>> = Vec::with_capacity(lines.len());
+    let mut res: Vec<Vec<SubCharacter>> = Vec::with_capacity(lines.len());
 
     for line in lines {
         res.push(
-            Grapheme::split(&line[..], header.hard_blank_char())
+            SubCharacter::split(&line[..], header.hard_blank_char())
                 .ok()
                 .ok_or::<Error>(ParseError::InvalidCharacter.into())?,
         );
