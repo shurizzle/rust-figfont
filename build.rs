@@ -23,7 +23,7 @@ fn write_header(test_file: &mut File) {
     write!(
         test_file,
         r#"
-use figlet_font::FIGfont;
+use figfont::FIGfont;
 
         "#
     )
