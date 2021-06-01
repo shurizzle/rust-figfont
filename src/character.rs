@@ -5,38 +5,50 @@ use std::{
 };
 
 use crate::{
-    error::ParseError,
+    error::{Error, ParseError},
+    grapheme::Grapheme,
     header::Header,
     result::Result,
     utils::{read_last_line, read_line},
 };
 
 #[derive(Debug)]
-pub struct Character {
-    lines: Vec<Vec<u8>>,
+pub struct FIGcharacter {
+    lines: Vec<Vec<Grapheme>>,
 }
 
-impl Character {
-    pub(crate) fn parse<R: Read>(bread: &mut BufReader<R>, header: &Header) -> Result<Character> {
+impl FIGcharacter {
+    pub(crate) fn parse<R: Read>(
+        bread: &mut BufReader<R>,
+        header: &Header,
+    ) -> Result<FIGcharacter> {
         read_character(bread, header)
     }
 
     pub(crate) fn parse_with_codetag<R: Read>(
         bread: &mut BufReader<R>,
         header: &Header,
-    ) -> Result<(i32, Character)> {
+    ) -> Result<(i32, FIGcharacter)> {
         read_character_with_codetag(bread, header)
     }
 
-    pub fn lines<'a>(&'a self) -> Cow<'a, Vec<Vec<u8>>> {
+    pub fn lines<'a>(&'a self) -> Cow<'a, Vec<Vec<Grapheme>>> {
         Cow::Borrowed(&self.lines)
+    }
+
+    pub fn height(&self) -> usize {
+        self.lines.len()
+    }
+
+    pub fn width(&self) -> usize {
+        self.lines.iter().map(|x| x.len()).max().unwrap_or_default()
     }
 }
 
 fn read_character_with_codetag<R: Read>(
     bread: &mut BufReader<R>,
     header: &Header,
-) -> Result<(i32, Character)> {
+) -> Result<(i32, FIGcharacter)> {
     let codetag = read_codetag(bread)?;
     let character = read_character(bread, header)?;
 
@@ -72,7 +84,7 @@ fn read_codetag<R: Read>(bread: &mut BufReader<R>) -> Result<i32> {
     Ok(code.map_err(|_| ParseError::InvalidCharacter)? * sign)
 }
 
-fn read_character<R: Read>(bread: &mut BufReader<R>, header: &Header) -> Result<Character> {
+fn read_character<R: Read>(bread: &mut BufReader<R>, header: &Header) -> Result<FIGcharacter> {
     let mut lines = read_lines(bread, header.height())?;
 
     let first = &lines[0];
@@ -104,23 +116,19 @@ fn read_character<R: Read>(bread: &mut BufReader<R>, header: &Header) -> Result<
 
         let len = lines[i].len();
         lines[i].truncate(len - 1);
-        while lines[i].ends_with(b" ") {
-            let len = lines[i].len();
-            lines[i].truncate(len - 1);
-        }
-        lines[i] = lines[i]
-            .iter()
-            .map(|c| {
-                if *c == header.hard_blank_char() {
-                    b' '
-                } else {
-                    *c
-                }
-            })
-            .collect();
     }
 
-    Ok(Character { lines })
+    let mut res: Vec<Vec<Grapheme>> = Vec::with_capacity(lines.len());
+
+    for line in lines {
+        res.push(
+            Grapheme::split(&line[..], header.hard_blank_char())
+                .ok()
+                .ok_or::<Error>(ParseError::InvalidHeader.into())?,
+        );
+    }
+
+    Ok(FIGcharacter { lines: res })
 }
 
 fn read_lines<R: Read>(bread: &mut BufReader<R>, num: usize) -> Result<Vec<Vec<u8>>> {

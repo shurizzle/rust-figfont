@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 use std::io::{BufReader, Read};
 
-use character::Character;
+use character::FIGcharacter;
 use header::Header;
 
 pub mod character;
 pub mod error;
+pub mod grapheme;
 pub mod header;
 pub mod result;
 mod utils;
@@ -19,7 +20,7 @@ const STANDARD_FONT: &'static [u8] = include_bytes!("../fonts/standard.flf");
 #[derive(Debug)]
 pub struct FIGfont {
     header: Header,
-    characters: HashMap<i32, Character>,
+    characters: HashMap<i32, FIGcharacter>,
 }
 
 impl FIGfont {
@@ -44,17 +45,17 @@ fn parse<R: Read>(reader: R) -> Result<FIGfont> {
     let mut characters = HashMap::new();
 
     for codepoint in 32..127 {
-        characters.insert(codepoint, Character::parse(&mut bread, &header)?);
+        characters.insert(codepoint, FIGcharacter::parse(&mut bread, &header)?);
     }
 
     for codepoint in DEUTSCH_CODE_POINTS.iter() {
         let codepoint = *codepoint;
 
-        characters.insert(codepoint, Character::parse(&mut bread, &header)?);
+        characters.insert(codepoint, FIGcharacter::parse(&mut bread, &header)?);
     }
 
     for _ in 0..header.codetag_count() {
-        let (codepoint, character) = Character::parse_with_codetag(&mut bread, &header)?;
+        let (codepoint, character) = FIGcharacter::parse_with_codetag(&mut bread, &header)?;
         characters.insert(codepoint, character);
     }
 

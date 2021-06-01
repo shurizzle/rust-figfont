@@ -4,21 +4,51 @@ use std::{
     str::{from_utf8, FromStr},
 };
 
-use crate::{error::ParseError, result::Result, utils::read_line};
+use crate::{
+    error::{Error, ParseError},
+    result::Result,
+    utils::read_line,
+};
 
-const MAGIC_NUMBER: &'static [u8] = b"flf2";
+use bitflags::bitflags;
+
+const MAGIC_NUMBER: &'static [u8] = b"flf2a";
+
+bitflags! {
+    pub struct Layout: u32 {
+        const EQUAL = 1;
+        const LOWLINE = 2;
+        const HIERARCHY = 4;
+        const PAIR = 8;
+        const BIGX = 16;
+        const HARDBLANK = 32;
+        const KERN = 64;
+        const SMUSH = 128;
+    }
+}
+
+impl FromStr for Layout {
+    type Err = Error;
+
+    fn from_str(raw: &str) -> std::result::Result<Self, <Self as FromStr>::Err> {
+        let raw: u32 = raw
+            .parse()
+            .ok()
+            .ok_or::<Error>(ParseError::InvalidHeader.into())?;
+        Ok(Layout::from_bits_truncate(raw))
+    }
+}
 
 #[derive(Debug)]
 pub struct Header {
-    hard_blank_char: u8,
+    hard_blank_char: Vec<u8>,
     height: usize,
-    baseline: u64,
-    max_length: u64,
-    old_layout: i64,
-    full_layout: u64,
+    baseline: usize,
+    max_length: usize,
+    layout: Layout,
     comment: String,
     print_direction: Option<PrintDirection>,
-    codetag_count: Option<u64>,
+    codetag_count: Option<u32>,
 }
 
 impl Header {
@@ -26,28 +56,24 @@ impl Header {
         parse_header(bread)
     }
 
-    pub fn hard_blank_char(&self) -> u8 {
-        self.hard_blank_char
+    pub fn hard_blank_char<'a>(&'a self) -> &'a [u8] {
+        &self.hard_blank_char[..]
     }
 
     pub fn height(&self) -> usize {
         self.height
     }
 
-    pub fn baseline(&self) -> u64 {
+    pub fn baseline(&self) -> usize {
         self.baseline
     }
 
-    pub fn max_length(&self) -> u64 {
+    pub fn max_length(&self) -> usize {
         self.max_length
     }
 
-    pub fn old_layout(&self) -> i64 {
-        self.old_layout
-    }
-
-    pub fn full_layout(&self) -> u64 {
-        self.full_layout
+    pub fn layout(&self) -> Layout {
+        self.layout
     }
 
     pub fn comment<'a>(&'a self) -> Cow<'a, str> {
@@ -58,7 +84,7 @@ impl Header {
         self.print_direction
     }
 
-    pub fn codetag_count(&self) -> u64 {
+    pub fn codetag_count(&self) -> u32 {
         self.codetag_count.unwrap_or(0)
     }
 }
@@ -84,25 +110,6 @@ impl FromStr for PrintDirection {
     }
 }
 
-#[derive(Debug, Default)]
-pub(crate) struct HeaderBuilder {
-    hard_blank_char: Option<u8>,
-    height: Option<usize>,
-    baseline: Option<u64>,
-    max_length: Option<u64>,
-    old_layout: Option<i64>,
-    full_layout: Option<u64>,
-    comment_lines: Option<usize>,
-    print_direction: Option<PrintDirection>,
-    codetag_count: Option<u64>,
-}
-
-macro_rules! u {
-    ($what:expr) => {
-        $what.ok_or(ParseError::InvalidHeader)?
-    };
-}
-
 fn read_string_lines<R: Read>(bread: &mut BufReader<R>, num: usize) -> Result<String> {
     let mut lines = String::new();
 
@@ -121,31 +128,12 @@ fn read_string_lines<R: Read>(bread: &mut BufReader<R>, num: usize) -> Result<St
     Ok(lines)
 }
 
-impl HeaderBuilder {
-    pub fn build<R: Read>(self, bread: &mut BufReader<R>) -> Result<Header> {
-        let comment_lines = self.comment_lines.unwrap_or(0);
-        let comment = read_string_lines(bread, comment_lines)?;
-
-        Ok(Header {
-            hard_blank_char: u!(self.hard_blank_char),
-            height: u!(self.height),
-            baseline: u!(self.baseline),
-            max_length: u!(self.max_length),
-            old_layout: u!(self.old_layout),
-            full_layout: u!(self.full_layout),
-            comment,
-            print_direction: self.print_direction,
-            codetag_count: self.codetag_count,
-        })
-    }
-}
-
 macro_rules! parse {
-    ($arg:ident) => {
+    ($arg:expr) => {
         parse!($arg, _)
     };
 
-    ($arg:ident, $t:ty) => {
+    ($arg:expr, $t:ty) => {
         match from_utf8($arg)
             .map_err(|_| ParseError::InvalidHeader)?
             .parse::<$t>()
@@ -160,59 +148,77 @@ macro_rules! parse {
 
 fn parse_header<R: Read>(bread: &mut BufReader<R>) -> Result<Header> {
     let header = read_line(bread)?;
-    let arguments = header.split(|c| c == &b' ').filter(|x| !x.is_empty());
-    let mut builder = HeaderBuilder::default();
+    let header: Vec<u8> = if header.starts_with(MAGIC_NUMBER) {
+        header.into_iter().skip(MAGIC_NUMBER.len()).collect()
+    } else {
+        return Err(ParseError::InvalidHeader.into());
+    };
 
-    for (i, arg) in arguments.enumerate() {
-        match i {
-            0 => {
-                if arg.starts_with(MAGIC_NUMBER) {
-                    builder.hard_blank_char =
-                        Some(*arg.last().ok_or_else(|| ParseError::InvalidHeader)?);
-                } else {
-                    return Err(ParseError::InvalidHeader.into());
-                }
-            }
-            1 => {
-                builder.height = parse!(arg);
-            }
-            2 => {
-                builder.baseline = parse!(arg);
-            }
-            3 => {
-                builder.max_length = parse!(arg);
-            }
-            4 => {
-                builder.old_layout = parse!(arg);
-                builder.full_layout = Some(full_layout_from_old_layout(
-                    *builder.old_layout.as_ref().unwrap(),
-                ));
-            }
-            5 => {
-                builder.comment_lines = parse!(arg);
-            }
-            6 => {
-                builder.print_direction = parse!(arg);
-            }
-            7 => {
-                builder.full_layout = parse!(arg);
-            }
-            8 => {
-                builder.codetag_count = parse!(arg);
-            }
-            _ => {
-                return Err(ParseError::InvalidHeader.into());
-            }
-        }
+    let arguments: Vec<&[u8]> = header
+        .split(|c| c == &b' ')
+        .enumerate()
+        .filter(|(i, x)| *i == 0 || !x.is_empty())
+        .map(|(_, x)| x)
+        .collect();
+
+    if arguments.len() < 6 || arguments.len() > 9 {
+        return Err(ParseError::InvalidHeader.into());
     }
 
-    builder.build(bread)
+    if arguments[0].is_empty() {
+        return Err(ParseError::InvalidHeader.into());
+    }
+
+    let mut hard_blank_char: Vec<u8> = Vec::with_capacity(arguments[0].len());
+    hard_blank_char.extend_from_slice(arguments[0]);
+    let height: usize = parse!(arguments[1]).ok_or(ParseError::InvalidHeader)?;
+    let baseline: usize = parse!(arguments[2]).ok_or(ParseError::InvalidHeader)?;
+    let max_length: usize = parse!(arguments[3]).ok_or(ParseError::InvalidHeader)?;
+    let old_layout: i32 = parse!(arguments[4]).ok_or(ParseError::InvalidHeader)?;
+
+    let print_direction: Option<PrintDirection> = if arguments.len() > 6 {
+        Some(parse!(arguments[6]).ok_or(ParseError::InvalidHeader)?)
+    } else {
+        None
+    };
+
+    let layout: Layout = if arguments.len() > 7 {
+        parse!(arguments[7]).ok_or(ParseError::InvalidHeader)?
+    } else {
+        full_layout_from_old_layout(old_layout)
+    };
+
+    let codetag_count: Option<u32> = if arguments.len() > 8 {
+        Some(parse!(arguments[8]).ok_or(ParseError::InvalidHeader)?)
+    } else {
+        None
+    };
+
+    let comment: String = {
+        let comment_lines: usize = parse!(arguments[5]).ok_or(ParseError::InvalidHeader)?;
+        read_string_lines(bread, comment_lines)?
+    };
+
+    Ok(Header {
+        hard_blank_char,
+        height,
+        baseline,
+        max_length,
+        comment,
+        print_direction,
+        layout,
+        codetag_count,
+    })
 }
 
-fn full_layout_from_old_layout(old_layout: i64) -> u64 {
-    match old_layout {
-        -1 => 0,
-        0 => 1 << 6,
-        l => l as u64,
-    }
+fn full_layout_from_old_layout(old_layout: i32) -> Layout {
+    let raw = if old_layout == 0 {
+        64
+    } else if old_layout < 0 {
+        0
+    } else {
+        (old_layout as u32 & 31) | 128
+    };
+
+    Layout::from_bits_truncate(raw)
 }
