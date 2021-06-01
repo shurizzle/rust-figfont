@@ -4,6 +4,8 @@ use std::{
     str::from_utf8,
 };
 
+use encoding::{all::ISO_8859_1, DecoderTrap, Encoding};
+
 use crate::{
     error::{Error, ParseError},
     header::Header,
@@ -14,6 +16,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct FIGcharacter {
+    comment: Option<String>,
     lines: Vec<Vec<SubCharacter>>,
 }
 
@@ -49,18 +52,24 @@ fn read_character_with_codetag<R: Read>(
     bread: &mut BufReader<R>,
     header: &Header,
 ) -> Result<(i32, FIGcharacter)> {
-    let codetag = read_codetag(bread)?;
-    let character = read_character(bread, header)?;
+    let (codetag, comment) = read_codetag(bread)?;
+    let mut character = read_character(bread, header)?;
+    character.comment = comment;
 
     Ok((codetag, character))
 }
 
-fn read_codetag<R: Read>(bread: &mut BufReader<R>) -> Result<i32> {
+fn read_codetag<R: Read>(bread: &mut BufReader<R>) -> Result<(i32, Option<String>)> {
     let line = read_line(bread)?;
-    let mut code = line
-        .splitn(2, |c| c == &b' ')
-        .next()
-        .ok_or(ParseError::InvalidCharacter)?;
+    let mut line = line.splitn(2, |c| c == &b' ');
+    let mut code = line.next().ok_or(ParseError::InvalidCharacter)?;
+    let comment = match line.next() {
+        Some(bytes) => match ISO_8859_1.decode(bytes, DecoderTrap::Replace) {
+            Ok(comment) => Some(comment),
+            Err(_) => None,
+        },
+        None => None,
+    };
 
     let sign: i32 = if code.starts_with(b"-") {
         code = &code[1..];
@@ -81,7 +90,10 @@ fn read_codetag<R: Read>(bread: &mut BufReader<R>) -> Result<i32> {
             .parse()
     };
 
-    Ok(code.map_err(|_| ParseError::InvalidCharacter)? * sign)
+    Ok((
+        code.map_err(|_| ParseError::InvalidCharacter)? * sign,
+        comment,
+    ))
 }
 
 fn read_character<R: Read>(bread: &mut BufReader<R>, header: &Header) -> Result<FIGcharacter> {
@@ -128,7 +140,10 @@ fn read_character<R: Read>(bread: &mut BufReader<R>, header: &Header) -> Result<
         );
     }
 
-    Ok(FIGcharacter { lines: res })
+    Ok(FIGcharacter {
+        comment: None,
+        lines: res,
+    })
 }
 
 fn read_lines<R: Read>(bread: &mut BufReader<R>, num: usize) -> Result<Vec<Vec<u8>>> {
