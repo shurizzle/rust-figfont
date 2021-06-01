@@ -17,22 +17,18 @@ struct SplitWith<'a, 'b> {
     when: &'b [u8],
 }
 
-// TODO: fix infinite cycle
 impl<'a, 'b> Iterator for SplitWith<'a, 'b> {
     type Item = &'a [u8];
 
     fn next(&mut self) -> Option<<Self as Iterator>::Item> {
         match self.haystack {
             Some(haystack) => {
-                let mut end = 0usize;
-                while end < haystack.len() {
-                    println!("forever while");
-                    if (&haystack[end..]).starts_with(self.when) {
-                        let res = &haystack[..end];
-                        self.haystack = Some(&haystack[end..]);
+                for i in 0usize..haystack.len() {
+                    if (&haystack[i..]).starts_with(self.when) {
+                        let res = &haystack[..i];
+                        self.haystack = Some(&haystack[(self.when.len() + i)..]);
                         return Some(res);
                     }
-                    end += 1usize;
                 }
 
                 let res = Some(haystack);
