@@ -12,10 +12,18 @@ fn main() {
 
     write_header(&mut test_file);
 
-    let test_fonts = read_dir("./fonts/").unwrap();
+    let test_fonts = read_dir("./fonts/plain/").unwrap();
 
     for font in test_fonts {
-        write_test(&mut test_file, &font.unwrap());
+        write_test("plain_", &mut test_file, &font.unwrap());
+    }
+
+    if cfg!(feature = "zip") {
+        let test_fonts = read_dir("./fonts/zipped/").unwrap();
+
+        for font in test_fonts {
+            write_test("zipped_", &mut test_file, &font.unwrap());
+        }
     }
 }
 
@@ -30,7 +38,7 @@ use figfont::FIGfont;
     .unwrap();
 }
 
-fn write_test(test_file: &mut File, entry: &DirEntry) {
+fn write_test(prefix: &str, test_file: &mut File, entry: &DirEntry) {
     if entry.file_type().unwrap().is_file() && entry.path().extension().unwrap() == "flf" {
         let p = canonicalize(entry.path()).unwrap();
         let path = p.to_str().unwrap();
@@ -40,7 +48,7 @@ fn write_test(test_file: &mut File, entry: &DirEntry) {
         write!(
             test_file,
             include_str!("./tests/test_template"),
-            name = test_name,
+            name = format!("{}{}", prefix, test_name),
             path = path
         )
         .unwrap();

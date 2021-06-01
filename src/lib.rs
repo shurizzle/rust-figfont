@@ -1,5 +1,7 @@
 use std::collections::HashMap;
+use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
+use std::path::Path;
 
 use character::FIGcharacter;
 use error::ParseError;
@@ -12,11 +14,13 @@ pub mod result;
 pub mod subcharacter;
 mod utils;
 
+#[cfg(feature = "zip")]
+use crate::error::Error;
 use crate::result::Result;
 
 const DEUTSCH_CODE_POINTS: [i32; 7] = [196, 214, 220, 228, 246, 252, 223];
 
-const STANDARD_FONT: &'static [u8] = include_bytes!("../fonts/standard.flf");
+const STANDARD_FONT: &'static [u8] = include_bytes!("../fonts/plain/standard.flf");
 
 #[derive(Debug)]
 pub struct FIGfont {
@@ -25,6 +29,10 @@ pub struct FIGfont {
 }
 
 impl FIGfont {
+    pub fn load_from<P: AsRef<Path>>(path: P) -> Result<FIGfont> {
+        load_from(path)
+    }
+
     pub fn read_from<R: Read>(reader: R) -> Result<FIGfont> {
         parse(reader)
     }
@@ -82,6 +90,60 @@ fn parse<R: Read>(reader: R) -> Result<FIGfont> {
     }
 
     Ok(FIGfont { header, characters })
+}
+
+#[cfg(feature = "zip")]
+fn load_from_zip<P: AsRef<Path>>(path: P) -> Result<FIGfont> {
+    use zip::ZipArchive;
+
+    let mut zip = ZipArchive::new(File::open(path.as_ref())?)?;
+
+    let file_name = path
+        .as_ref()
+        .file_name()
+        .ok_or::<Error>(ParseError::InvalidFont.into())?
+        .to_str()
+        .ok_or::<Error>(ParseError::InvalidFont.into())?;
+
+    let f = zip.by_name(file_name)?;
+
+    parse(f)
+}
+
+#[cfg(feature = "zip")]
+fn is_plain<P: AsRef<Path>>(path: P) -> Result<bool> {
+    let mut f = File::open(path)?;
+    let mut number: [u8; 5] = [0; 5];
+    f.read(&mut number)?;
+    Ok(&number == b"flf2a")
+}
+
+fn load_from<P: AsRef<Path>>(path: P) -> Result<FIGfont> {
+    let path = path.as_ref();
+    match path.extension() {
+        Some(ext) => {
+            if ext != "flf" {
+                return Err(ParseError::InvalidExtension.into());
+            }
+        }
+        None => {
+            return Err(ParseError::InvalidExtension.into());
+        }
+    }
+
+    #[cfg(feature = "zip")]
+    {
+        if is_plain(path)? {
+            parse(File::open(path)?)
+        } else {
+            load_from_zip(path)
+        }
+    }
+
+    #[cfg(not(feature = "zip"))]
+    {
+        parse(File::open(path)?)
+    }
 }
 
 #[cfg(test)]
