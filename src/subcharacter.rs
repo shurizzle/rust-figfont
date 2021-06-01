@@ -1,4 +1,8 @@
-use std::{borrow::Borrow, str};
+use std::{
+    borrow::Borrow,
+    fmt::{Display, Formatter},
+    str,
+};
 
 use encoding::{all::ISO_8859_1, Encoding};
 use unicode_segmentation::UnicodeSegmentation;
@@ -73,6 +77,13 @@ impl SubCharacter {
             SubCharacter::Symbol(ref sym) => UnicodeWidthStr::width(sym.as_str()),
         }
     }
+
+    pub fn is_blank(&self) -> bool {
+        match self {
+            SubCharacter::Blank => true,
+            _ => false,
+        }
+    }
 }
 
 impl Borrow<str> for SubCharacter {
@@ -84,11 +95,11 @@ impl Borrow<str> for SubCharacter {
     }
 }
 
-impl ToString for SubCharacter {
-    fn to_string(&self) -> String {
+impl Display for SubCharacter {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
         match self {
-            SubCharacter::Symbol(ref res) => res.to_string(),
-            SubCharacter::Blank => " ".to_string(),
+            SubCharacter::Blank => write!(fmt, " "),
+            SubCharacter::Symbol(c) => write!(fmt, "{}", c),
         }
     }
 }
