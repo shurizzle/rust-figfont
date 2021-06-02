@@ -140,7 +140,11 @@ fn read_character<R: Read>(bread: &mut BufReader<R>, header: &Header) -> Result<
         );
     }
 
-    let max_len = res.iter().map(|line| line.len()).max().unwrap_or(0);
+    let max_len = res
+        .iter()
+        .map(|line| line.into_iter().map(|c| c.width()).sum())
+        .max()
+        .unwrap_or(0);
 
     res = res
         .into_iter()
