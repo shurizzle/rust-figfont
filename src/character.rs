@@ -140,6 +140,20 @@ fn read_character<R: Read>(bread: &mut BufReader<R>, header: &Header) -> Result<
         );
     }
 
+    let max_len = res.iter().map(|line| line.len()).max().unwrap_or(0);
+
+    res = res
+        .into_iter()
+        .map(|mut line| {
+            if line.len() < max_len {
+                for _ in line.len()..max_len {
+                    line.push(SubCharacter::Symbol(" ".to_string()));
+                }
+            }
+            line
+        })
+        .collect();
+
     Ok(FIGcharacter {
         comment: None,
         lines: res,
