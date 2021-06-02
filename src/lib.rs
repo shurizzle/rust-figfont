@@ -14,8 +14,6 @@ pub mod result;
 pub mod subcharacter;
 mod utils;
 
-#[cfg(feature = "zip")]
-use crate::error::Error;
 use crate::result::Result;
 
 const DEUTSCH_CODE_POINTS: [i32; 7] = [196, 214, 220, 228, 246, 252, 223];
@@ -94,6 +92,7 @@ fn parse<R: Read>(reader: R) -> Result<FIGfont> {
 
 #[cfg(feature = "zip")]
 fn load_from_zip<P: AsRef<Path>>(path: P) -> Result<FIGfont> {
+    use crate::error::Error;
     use zip::ZipArchive;
 
     let mut zip = ZipArchive::new(File::open(path.as_ref())?)?;

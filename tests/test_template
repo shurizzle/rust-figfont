@@ -1,5 +1,4 @@
 #[test]
 fn {name}() {{
-    let input = include_bytes!("{path}");
-    let _font = FIGfont::read_from(&input[..]).unwrap();
+    FIGfont::load_from("{path}").unwrap();
 }}
