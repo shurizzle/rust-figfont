@@ -3,9 +3,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
 use std::path::Path;
 
-use character::FIGcharacter;
 use error::ParseError;
-use header::Header;
 
 pub mod character;
 pub mod error;
@@ -20,6 +18,12 @@ const DEUTSCH_CODE_POINTS: [i32; 7] = [196, 214, 220, 228, 246, 252, 223];
 
 const STANDARD_FONT: &'static [u8] = include_bytes!("../fonts/plain/standard.flf");
 
+pub use crate::{
+    character::FIGcharacter,
+    header::{Header, Layout, PrintDirection},
+    subcharacter::SubCharacter,
+};
+
 #[derive(Debug)]
 pub struct FIGfont {
     header: Header,
@@ -33,10 +37,6 @@ impl FIGfont {
 
     pub fn read_from<R: Read>(reader: R) -> Result<FIGfont> {
         parse(reader)
-    }
-
-    pub fn parse<S: AsRef<str>>(text: S) -> Result<FIGfont> {
-        Self::read_from(text.as_ref().as_bytes())
     }
 
     pub fn standard() -> Result<FIGfont> {
