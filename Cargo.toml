@@ -12,3 +12,6 @@ thiserror = "1.0.25"
 unicode-segmentation = "1.7.1"
 unicode-width = "0.1.8"
 zip = { version = "0.5.12", optional = true }
+
+[features]
+default = ["zip"]
