@@ -151,6 +151,6 @@ mod tests {
 
     #[test]
     fn default() {
-        FIGfont::standard().unwrap();
+        assert!(FIGfont::standard().is_ok());
     }
 }

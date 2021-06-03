@@ -1,4 +1,4 @@
 #[test]
 fn {name}() {{
-    FIGfont::load_from("{path}").unwrap();
+    assert!(FIGfont::load_from({path:?}).is_ok());
 }}
