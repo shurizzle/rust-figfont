@@ -120,14 +120,16 @@ fn read_character<R: Read>(bread: &mut BufReader<R>, header: &Header) -> Result<
 
     let delimiter = *first.last().unwrap();
 
-    if header.height() > 1 {
+    {
         let last_i = lines.len() - 1;
         if !lines[last_i].ends_with(&[delimiter][..]) {
             return Err(ParseError::InvalidCharacter.into());
         }
 
-        let new_len = lines[last_i].len() - 1;
-        unsafe { lines[last_i].set_len(new_len) };
+        if lines[last_i].ends_with(&[delimiter, delimiter][..]) {
+            let new_len = lines[last_i].len() - 1;
+            unsafe { lines[last_i].set_len(new_len) };
+        }
     }
 
     for i in 0..lines.len() {
