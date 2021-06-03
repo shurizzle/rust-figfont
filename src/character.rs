@@ -14,6 +14,7 @@ use crate::{
     utils::{read_last_line, read_line},
 };
 
+/// The FIGcharacter is the representation of a single large FIGfont character.
 #[derive(Debug)]
 pub struct FIGcharacter {
     comment: Option<String>,
@@ -35,16 +36,28 @@ impl FIGcharacter {
         read_character_with_codetag(bread, header)
     }
 
+    /// Get the matrix of SubCharacters.
     pub fn lines<'a>(&'a self) -> Cow<'a, Vec<Vec<SubCharacter>>> {
         Cow::Borrowed(&self.lines)
     }
 
+    /// Get the height (number of lines) of FIGcharacter.
     pub fn height(&self) -> usize {
         self.lines.len()
     }
 
+    /// Get the width (number of terminal cells) of FIGcharacter.
     pub fn width(&self) -> usize {
         self.lines.iter().map(|x| x.len()).max().unwrap_or_default()
+    }
+
+    /// Get the comment of the FIGcharacter, if any.
+    /// Only for codetagged characters.
+    pub fn comment<'a>(&'a self) -> Option<Cow<'a, String>> {
+        match self.comment {
+            Some(ref comment) => Some(Cow::Borrowed(comment)),
+            None => None,
+        }
     }
 }
 

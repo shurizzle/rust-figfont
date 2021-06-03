@@ -8,9 +8,14 @@ use encoding::{all::ISO_8859_1, Encoding};
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
+/// A SubCharacter is a single real character
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SubCharacter {
+    /// The actual subcharacter
     Symbol(String),
+    /// An hard blank character. It will print a space character.
+    /// It's not a SubCharacter::Symbol(" ".to_string()) for implementations
+    /// purposes.
     Blank,
 }
 
@@ -50,6 +55,7 @@ fn split<'a, 'b>(haystack: &'a [u8], when: &'b [u8]) -> SplitWith<'a, 'b> {
 }
 
 impl SubCharacter {
+    /// Split a Latin1-encoded string in a Vec<SubCharacter>
     pub fn split(raw: &[u8], blank_character: &[u8]) -> Result<Vec<SubCharacter>, String> {
         let mut res = Vec::new();
         for (i, string) in split(raw, blank_character).enumerate() {
@@ -71,6 +77,7 @@ impl SubCharacter {
         Ok(res)
     }
 
+    /// Get the width (number of terminal cells) of the SubCharacter.
     pub fn width(&self) -> usize {
         match self {
             SubCharacter::Blank => 1,
@@ -78,6 +85,7 @@ impl SubCharacter {
         }
     }
 
+    /// Check if it is an hard blank character.
     pub fn is_blank(&self) -> bool {
         match self {
             SubCharacter::Blank => true,

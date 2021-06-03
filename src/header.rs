@@ -15,14 +15,23 @@ use bitflags::bitflags;
 const MAGIC_NUMBER: &'static [u8] = b"flf2a";
 
 bitflags! {
+    /// The FIGfont's layout informations.
     pub struct Layout: u32 {
+        /// Equals smushing.
         const HORIZONTAL_EQUAL = 1;
+        /// Underscore smushing.
         const HORIZONTAL_LOWLINE = 2;
+        /// Hierarchy smushing.
         const HORIZONTAL_HIERARCHY = 4;
+        /// Pair brackets smushing.
         const HORIZONTAL_PAIR = 8;
+        /// Big X smushing.
         const HORIZONTAL_BIGX = 16;
+        /// Hard blank smushing.
         const HORIZONTAL_HARDBLANK = 32;
+        /// Apply kerning.
         const HORIZONTAL_KERNING = 64;
+        /// Apply smushing.
         const HORIZONTAL_SMUSH = 128;
 
         const VERTICAL_EQUAL = 256;
@@ -47,6 +56,7 @@ impl FromStr for Layout {
     }
 }
 
+/// FIGfont's header.
 #[derive(Debug)]
 pub struct Header {
     hard_blank_char: Vec<u8>,
@@ -64,39 +74,48 @@ impl Header {
         parse_header(bread)
     }
 
+    /// Get the hard blank character.
     pub fn hard_blank_char<'a>(&'a self) -> &'a [u8] {
         &self.hard_blank_char[..]
     }
 
+    /// Get the font's height (lines).
     pub fn height(&self) -> usize {
         self.height
     }
 
+    /// Get the font's basline. Unused.
     pub fn baseline(&self) -> usize {
         self.baseline
     }
 
+    /// Get the font's max length. Unused.
     pub fn max_length(&self) -> usize {
         self.max_length
     }
 
+    /// Get the font's layout.
     pub fn layout(&self) -> Layout {
         self.layout
     }
 
+    /// Get the font's comment.
     pub fn comment<'a>(&'a self) -> Cow<'a, str> {
         Cow::Borrowed(&self.comment)
     }
 
+    /// Get the print direction.
     pub fn print_direction(&self) -> PrintDirection {
         self.print_direction
     }
 
+    /// Get the number of codetagged characters.
     pub fn codetag_count(&self) -> Option<u32> {
         self.codetag_count
     }
 }
 
+/// Print direction enum.
 #[derive(Debug, Copy, Clone)]
 pub enum PrintDirection {
     LeftToRight,

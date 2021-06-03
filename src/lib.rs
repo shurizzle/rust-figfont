@@ -24,6 +24,7 @@ pub use crate::{
     subcharacter::SubCharacter,
 };
 
+/// FIGfont reader and parser.
 #[derive(Debug)]
 pub struct FIGfont {
     header: Header,
@@ -31,22 +32,28 @@ pub struct FIGfont {
 }
 
 impl FIGfont {
+    /// Read and parse a FIGfont from a path. It can be zipped if you have zip
+    /// feature enabled.
     pub fn load_from<P: AsRef<Path>>(path: P) -> Result<FIGfont> {
         load_from(path)
     }
 
+    /// Read and parse a FIGfont from a impl Read.
     pub fn read_from<R: Read>(reader: R) -> Result<FIGfont> {
         parse(reader)
     }
 
+    /// Get the standard FIGfont. (hardcoded)
     pub fn standard() -> Result<FIGfont> {
         Self::read_from(STANDARD_FONT)
     }
 
+    /// Get the current FIGfont's header.
     pub fn header(&self) -> &Header {
         &self.header
     }
 
+    /// Get the FIGcharacter for the `code` character.
     pub fn get(&self, code: i32) -> &FIGcharacter {
         self.characters
             .get(&code)
