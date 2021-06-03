@@ -1,7 +1,16 @@
 [package]
 name = "figfont"
+description = "Read and parse a FIGlet font in plain or zipped format."
 version = "0.1.0"
 edition = "2018"
+license = "WTFPL"
+readme = "README.md"
+authors = ["shurizzle <me@shurizzle.dev>"]
+repository = "https://github.com/shurizzle/rust-figfont"
+homepage = "https://github.com/shurizzle/rust-figfont"
+keywords = ["figlet", "fonts", "tui"]
+categories = ["algorithms", "command-line-interface", "graphics", "parser-implementations"]
+documentation = "https://docs.rs/figfont"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
