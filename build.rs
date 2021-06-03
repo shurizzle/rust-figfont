@@ -1,9 +1,7 @@
 fn main() {
-    #[cfg(test)]
-    test::generate()
+    test::generate();
 }
 
-#[cfg(test)]
 mod test {
     use std::{
         env,
@@ -11,6 +9,7 @@ mod test {
         io::Write,
         path::Path,
     };
+
     pub fn generate() {
         let out_dir = env::var("OUT_DIR").unwrap();
         let destination = Path::new(&out_dir).join("tests.rs");
@@ -32,6 +31,7 @@ mod test {
             }
         }
     }
+
     fn write_header(test_file: &mut File) {
         write!(
             test_file,
