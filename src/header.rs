@@ -16,6 +16,7 @@ const MAGIC_NUMBER: &[u8] = b"flf2a";
 
 bitflags! {
     /// The FIGfont's layout informations.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct Layout: u32 {
         /// Equals smushing.
         const HORIZONTAL_EQUAL = 1;

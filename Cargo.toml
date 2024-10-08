@@ -9,18 +9,23 @@ authors = ["shurizzle <me@shurizzle.dev>"]
 repository = "https://github.com/shurizzle/rust-figfont"
 homepage = "https://github.com/shurizzle/rust-figfont"
 keywords = ["figlet", "fonts", "tui"]
-categories = ["algorithms", "command-line-interface", "graphics", "parser-implementations"]
+categories = [
+  "algorithms",
+  "command-line-interface",
+  "graphics",
+  "parser-implementations",
+]
 documentation = "https://docs.rs/figfont"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bitflags = "1.2.1"
+bitflags = "2.6.0"
 encoding = "0.2.33"
-thiserror = "1.0.25"
-unicode-segmentation = "1.7.1"
-unicode-width = "0.1.8"
-zip = { version = "0.5.12", optional = true }
+thiserror = "1.0.64"
+unicode-segmentation = "1.12.0"
+unicode-width = "0.2.0"
+zip = { version = "2.2.0", optional = true }
 
 [features]
 default = ["zip"]
