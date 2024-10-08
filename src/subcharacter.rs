@@ -24,32 +24,53 @@ struct SplitWith<'a, 'b> {
     when: &'b [u8],
 }
 
+#[inline(always)]
+fn split_at<'a>(haystack: &'a [u8], when: &[u8]) -> (&'a [u8], Option<&'a [u8]>) {
+    if when.is_empty() {
+        if haystack.is_empty() {
+            return (haystack, None);
+        }
+
+        let (a, b) = haystack.split_at(1);
+        return (a, if b.is_empty() { None } else { Some(b) });
+    }
+
+    let mut off = 0usize;
+    while off < haystack.len() {
+        match memchr::memchr(when[0], &haystack[off..]).map(|n| n + off) {
+            Some(i) => {
+                if let Some(rest) = haystack[i..].strip_prefix(when) {
+                    return (
+                        &haystack[..i],
+                        if rest.is_empty() { None } else { Some(rest) },
+                    );
+                }
+                off = i + 1;
+            }
+            None => return (haystack, None),
+        }
+    }
+
+    (haystack, None)
+}
+
 impl<'a, 'b> Iterator for SplitWith<'a, 'b> {
     type Item = &'a [u8];
 
     fn next(&mut self) -> Option<<Self as Iterator>::Item> {
-        match self.haystack {
-            Some(haystack) => {
-                for i in 0usize..haystack.len() {
-                    if haystack[i..].starts_with(self.when) {
-                        let res = &haystack[..i];
-                        self.haystack = Some(&haystack[(self.when.len() + i)..]);
-                        return Some(res);
-                    }
-                }
-
-                let res = Some(haystack);
-                self.haystack = None;
-                res
-            }
-            None => None,
-        }
+        let res;
+        (res, self.haystack) = split_at(self.haystack?, self.when);
+        Some(res)
     }
 }
 
 fn split<'a, 'b>(haystack: &'a [u8], when: &'b [u8]) -> SplitWith<'a, 'b> {
     SplitWith {
-        haystack: Some(haystack),
+        haystack: if haystack.is_empty() {
+            None
+        } else {
+            Some(haystack)
+        },
         when,
     }
 }
