@@ -1,5 +1,4 @@
 use std::{
-    borrow::Cow,
     io::{BufReader, Read},
     str::from_utf8,
 };
@@ -17,8 +16,8 @@ use crate::{
 /// The FIGcharacter is the representation of a single large FIGfont character.
 #[derive(Debug, Clone)]
 pub struct FIGcharacter {
-    comment: Option<String>,
-    lines: Vec<Vec<SubCharacter>>,
+    comment: Option<Box<str>>,
+    lines: Box<[Box<[SubCharacter]>]>,
 }
 
 impl FIGcharacter {
@@ -37,8 +36,8 @@ impl FIGcharacter {
     }
 
     /// Get the matrix of SubCharacters.
-    pub fn lines(&self) -> Cow<'_, Vec<Vec<SubCharacter>>> {
-        Cow::Borrowed(&self.lines)
+    pub fn lines(&self) -> &[Box<[SubCharacter]>] {
+        &self.lines
     }
 
     /// Get the height (number of lines) of FIGcharacter.
@@ -53,8 +52,8 @@ impl FIGcharacter {
 
     /// Get the comment of the FIGcharacter, if any.
     /// Only for codetagged characters.
-    pub fn comment(&self) -> Option<Cow<'_, String>> {
-        self.comment.as_ref().map(Cow::Borrowed)
+    pub fn comment(&self) -> Option<&str> {
+        self.comment.as_deref()
     }
 }
 
@@ -64,7 +63,7 @@ fn read_character_with_codetag<R: Read>(
 ) -> Result<(i32, FIGcharacter)> {
     let (codetag, comment) = read_codetag(bread)?;
     let mut character = read_character(bread, header)?;
-    character.comment = comment;
+    character.comment = comment.map(String::into_boxed_str);
 
     Ok((codetag, character))
 }
@@ -158,15 +157,15 @@ fn read_character<R: Read>(bread: &mut BufReader<R>, header: &Header) -> Result<
         .max()
         .unwrap_or(0);
 
-    res = res
+    let res = res
         .into_iter()
         .map(|mut line| {
             if line.len() < max_len {
                 for _ in line.len()..max_len {
-                    line.push(SubCharacter::Symbol(" ".to_string()));
+                    line.push(SubCharacter::Symbol(" ".to_string().into_boxed_str()));
                 }
             }
-            line
+            line.into_boxed_slice()
         })
         .collect();
 

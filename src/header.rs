@@ -59,12 +59,12 @@ impl FromStr for Layout {
 /// FIGfont's header.
 #[derive(Debug, Clone)]
 pub struct Header {
-    hard_blank_char: Vec<u8>,
+    hard_blank_char: Box<[u8]>,
     height: usize,
     baseline: usize,
     max_length: usize,
     layout: Layout,
-    comment: String,
+    comment: Box<str>,
     print_direction: PrintDirection,
     codetag_count: Option<u32>,
 }
@@ -76,7 +76,7 @@ impl Header {
 
     /// Get the hard blank character.
     pub fn hard_blank_char(&self) -> &[u8] {
-        &self.hard_blank_char[..]
+        &self.hard_blank_char
     }
 
     /// Get the font's height (lines).
@@ -227,11 +227,11 @@ fn parse_header<R: Read>(bread: &mut BufReader<R>) -> Result<Header> {
     };
 
     Ok(Header {
-        hard_blank_char,
+        hard_blank_char: hard_blank_char.into_boxed_slice(),
         height,
         baseline,
         max_length,
-        comment,
+        comment: comment.into_boxed_str(),
         print_direction,
         layout,
         codetag_count,
@@ -241,11 +241,9 @@ fn parse_header<R: Read>(bread: &mut BufReader<R>) -> Result<Header> {
 fn full_layout_from_old_layout(old_layout: i32) -> Layout {
     use std::cmp::Ordering::*;
 
-    let raw = match old_layout.cmp(&0) {
+    Layout::from_bits_truncate(match old_layout.cmp(&0) {
         Equal => 64,
         Less => 0,
         Greater => (old_layout as u32 & 31) | 128,
-    };
-
-    Layout::from_bits_truncate(raw)
+    })
 }

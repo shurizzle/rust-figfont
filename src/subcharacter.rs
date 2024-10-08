@@ -12,7 +12,7 @@ use unicode_width::UnicodeWidthStr;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SubCharacter {
     /// The actual subcharacter
-    Symbol(String),
+    Symbol(Box<str>),
     /// An hard blank character. It will print a space character.
     /// It's not a SubCharacter::Symbol(" ".to_string()) for implementations
     /// purposes.
@@ -69,7 +69,7 @@ impl SubCharacter {
                     .map_err(|e| e.to_string())?
                     .to_string();
                 for g in string.graphemes(false) {
-                    res.push(SubCharacter::Symbol(g.to_string()));
+                    res.push(SubCharacter::Symbol(g.to_string().into_boxed_str()));
                 }
             }
         }
@@ -81,7 +81,7 @@ impl SubCharacter {
     pub fn width(&self) -> usize {
         match self {
             SubCharacter::Blank => 1,
-            SubCharacter::Symbol(ref sym) => UnicodeWidthStr::width(sym.as_str()),
+            SubCharacter::Symbol(ref sym) => UnicodeWidthStr::width(sym.as_ref()),
         }
     }
 
@@ -91,12 +91,19 @@ impl SubCharacter {
     }
 }
 
-impl Borrow<str> for SubCharacter {
-    fn borrow(&self) -> &str {
+impl AsRef<str> for SubCharacter {
+    fn as_ref(&self) -> &str {
         match self {
             SubCharacter::Symbol(ref res) => res,
             SubCharacter::Blank => " ",
         }
+    }
+}
+
+impl Borrow<str> for SubCharacter {
+    #[inline]
+    fn borrow(&self) -> &str {
+        self.as_ref()
     }
 }
 
@@ -112,7 +119,7 @@ impl Display for SubCharacter {
 impl From<&char> for SubCharacter {
     #[inline]
     fn from(c: &char) -> Self {
-        SubCharacter::Symbol(c.to_string())
+        SubCharacter::Symbol(c.to_string().into_boxed_str())
     }
 }
 
