@@ -15,7 +15,7 @@ use crate::{
 };
 
 /// The FIGcharacter is the representation of a single large FIGfont character.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FIGcharacter {
     comment: Option<String>,
     lines: Vec<Vec<SubCharacter>>,

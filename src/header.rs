@@ -57,7 +57,7 @@ impl FromStr for Layout {
 }
 
 /// FIGfont's header.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Header {
     hard_blank_char: Vec<u8>,
     height: usize,

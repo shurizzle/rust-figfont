@@ -25,7 +25,7 @@ pub use crate::{
 };
 
 /// FIGfont reader and parser.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FIGfont {
     header: Header,
     characters: HashMap<i32, FIGcharacter>,

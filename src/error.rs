@@ -36,7 +36,7 @@ impl From<ZipError> for Error {
     }
 }
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, Clone, Copy)]
 pub enum ParseError {
     #[error("not enough data")]
     NotEnoughData,
