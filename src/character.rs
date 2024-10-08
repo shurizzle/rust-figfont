@@ -37,7 +37,7 @@ impl FIGcharacter {
     }
 
     /// Get the matrix of SubCharacters.
-    pub fn lines<'a>(&'a self) -> Cow<'a, Vec<Vec<SubCharacter>>> {
+    pub fn lines(&self) -> Cow<'_, Vec<Vec<SubCharacter>>> {
         Cow::Borrowed(&self.lines)
     }
 
@@ -53,11 +53,8 @@ impl FIGcharacter {
 
     /// Get the comment of the FIGcharacter, if any.
     /// Only for codetagged characters.
-    pub fn comment<'a>(&'a self) -> Option<Cow<'a, String>> {
-        match self.comment {
-            Some(ref comment) => Some(Cow::Borrowed(comment)),
-            None => None,
-        }
+    pub fn comment(&self) -> Option<Cow<'_, String>> {
+        self.comment.as_ref().map(Cow::Borrowed)
     }
 }
 
@@ -114,7 +111,7 @@ fn read_character<R: Read>(bread: &mut BufReader<R>, header: &Header) -> Result<
 
     let first = &lines[0];
 
-    if first.len() == 0 {
+    if first.is_empty() {
         return Err(ParseError::InvalidCharacter.into());
     }
 
@@ -132,17 +129,17 @@ fn read_character<R: Read>(bread: &mut BufReader<R>, header: &Header) -> Result<
         }
     }
 
-    for i in 0..lines.len() {
-        if lines[i].len() == 0 {
+    for line in lines.iter_mut() {
+        if line.is_empty() {
             return Err(ParseError::InvalidCharacter.into());
         }
 
-        if *lines[i].last().unwrap() != delimiter {
+        if *line.last().unwrap() != delimiter {
             return Err(ParseError::InvalidCharacter.into());
         }
 
-        let len = lines[i].len();
-        lines[i].truncate(len - 1);
+        let len = line.len();
+        line.truncate(len - 1);
     }
 
     let mut res: Vec<Vec<SubCharacter>> = Vec::with_capacity(lines.len());
@@ -157,7 +154,7 @@ fn read_character<R: Read>(bread: &mut BufReader<R>, header: &Header) -> Result<
 
     let max_len = res
         .iter()
-        .map(|line| line.into_iter().map(|c| c.width()).sum())
+        .map(|line| line.iter().map(|c| c.width()).sum())
         .max()
         .unwrap_or(0);
 

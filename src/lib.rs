@@ -16,7 +16,7 @@ use crate::result::Result;
 
 const DEUTSCH_CODE_POINTS: [i32; 7] = [196, 214, 220, 228, 246, 252, 223];
 
-const STANDARD_FONT: &'static [u8] = include_bytes!("../fonts/plain/standard.flf");
+const STANDARD_FONT: &[u8] = include_bytes!("../fonts/plain/standard.flf");
 
 pub use crate::{
     character::FIGcharacter,
@@ -79,19 +79,16 @@ fn parse<R: Read>(reader: R) -> Result<FIGfont> {
     }
 
     let mut cnt = 0;
-    while bread.fill_buf()?.len() > 0 {
+    while !bread.fill_buf()?.is_empty() {
         let (codepoint, character) = FIGcharacter::parse_with_codetag(&mut bread, &header)?;
         characters.insert(codepoint, character);
         cnt += 1;
     }
 
-    match header.codetag_count() {
-        Some(expected_cnt) => {
-            if expected_cnt != cnt {
-                return Err(ParseError::InvalidFont.into());
-            }
+    if let Some(expected_cnt) = header.codetag_count() {
+        if expected_cnt != cnt {
+            return Err(ParseError::InvalidFont.into());
         }
-        None => (),
     }
 
     Ok(FIGfont { header, characters })
@@ -120,7 +117,7 @@ fn load_from_zip<P: AsRef<Path>>(path: P) -> Result<FIGfont> {
 fn is_plain<P: AsRef<Path>>(path: P) -> Result<bool> {
     let mut f = File::open(path)?;
     let mut number: [u8; 5] = [0; 5];
-    f.read(&mut number)?;
+    f.read_exact(&mut number)?;
     Ok(&number == b"flf2a")
 }
 

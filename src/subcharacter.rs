@@ -31,7 +31,7 @@ impl<'a, 'b> Iterator for SplitWith<'a, 'b> {
         match self.haystack {
             Some(haystack) => {
                 for i in 0usize..haystack.len() {
-                    if (&haystack[i..]).starts_with(self.when) {
+                    if haystack[i..].starts_with(self.when) {
                         let res = &haystack[..i];
                         self.haystack = Some(&haystack[(self.when.len() + i)..]);
                         return Some(res);
@@ -87,15 +87,12 @@ impl SubCharacter {
 
     /// Check if it is an hard blank character.
     pub fn is_blank(&self) -> bool {
-        match self {
-            SubCharacter::Blank => true,
-            _ => false,
-        }
+        matches!(self, SubCharacter::Blank)
     }
 }
 
 impl Borrow<str> for SubCharacter {
-    fn borrow<'a>(&'a self) -> &'a str {
+    fn borrow(&self) -> &str {
         match self {
             SubCharacter::Symbol(ref res) => res,
             SubCharacter::Blank => " ",
